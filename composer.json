@@ -1,0 +1,93 @@
+{
+  "name": "debuss-a/piccolo-framework",
+  "type": "library",
+  "description": "The framework of the Piccolo skeleton: a PSR-15 application built on Laminas Stratigility and Mezzio components, with a scoped container, attribute-based routing, and FrankenPHP worker mode support.",
+  "license": "MIT",
+  "keywords": [
+    "psr",
+    "psr-7",
+    "psr-15",
+    "mezzio",
+    "laminas",
+    "micro",
+    "framework",
+    "api",
+    "frankenphp",
+    "worker"
+  ],
+  "authors": [
+    {
+      "name": "Alexandre Debusschère",
+      "email": "alexandre.debusschere@hey.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Piccolo\\": "src/"
+    },
+    "files": [
+      "src/functions.php"
+    ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "repositories": [
+    {
+      "type": "path",
+      "url": "../piccolo-container",
+      "options": {
+        "symlink": true
+      }
+    }
+  ],
+  "require": {
+    "php": "^8.4",
+    "borschphp/config": "^1.4",
+    "debuss-a/attribute-routing": "^3.0",
+    "debuss-a/awareness": "^1.2",
+    "debuss-a/piccolo-container": "^0.1@dev",
+    "debuss-a/server-request-factory": "^1.0",
+    "laminas/laminas-diactoros": "^3.8",
+    "laminas/laminas-httphandlerrunner": "^2.13",
+    "laminas/laminas-stratigility": "^4.3",
+    "league/plates": "^3.6",
+    "mezzio/mezzio-cors": "^1.16",
+    "mezzio/mezzio-fastroute": "^3.14",
+    "mezzio/mezzio-helpers": "^5.20",
+    "mezzio/mezzio-platesrenderer": "^2.14",
+    "mezzio/mezzio-problem-details": "^1.19",
+    "mezzio/mezzio-router": "^4.2",
+    "mezzio/mezzio-template": "^3.0",
+    "monolog/monolog": "^3.10",
+    "psr/container": "^2.0",
+    "psr/http-factory": "^1.1",
+    "psr/http-message": "^2.0",
+    "psr/http-server-handler": "^1.0",
+    "psr/http-server-middleware": "^1.0",
+    "psr/log": "^3.0",
+    "symfony/console": "^8.1"
+  },
+  "require-dev": {
+    "pestphp/pest": "^5.1"
+  },
+  "scripts": {
+    "test": [
+      "./vendor/bin/pest"
+    ]
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-master": "0.1.x-dev"
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "php-http/discovery": false,
+      "pestphp/pest-plugin": true
+    },
+    "sort-packages": true
+  }
+}
