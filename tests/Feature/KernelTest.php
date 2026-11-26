@@ -67,6 +67,19 @@ test('resolves every service of the framework', function (string $id) {
     RoutesListCommand::class,
 ]);
 
+test('creates the stateless middlewares of the framework once, for all the requests', function (string $id) {
+    $container = Kernel::boot(fixtureApp())->container();
+
+    expect($container->createScope()->get($id))->toBe($container->createScope()->get($id));
+})->with([
+    Piccolo\Middleware\RequestIdMiddleware::class,
+    Laminas\Stratigility\Middleware\OriginalMessages::class,
+    Piccolo\Middleware\ApiAcceptHeaderMiddleware::class,
+    Piccolo\Middleware\HttpCacheMiddleware::class,
+    BodyParamsMiddleware::class,
+    Laminas\Stratigility\Handler\NotFoundHandler::class,
+]);
+
 test('runs the requests with the SAPI runner outside a FrankenPHP worker', function () {
     expect(Kernel::boot(fixtureApp())->container()->get(RunnerInterface::class))->toBeInstanceOf(SapiRunner::class);
 });

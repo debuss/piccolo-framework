@@ -5,9 +5,13 @@ namespace Piccolo\ServiceProvider;
 use Awareness\ContainerAwareInterface;
 use Debuss\ServerRequestFactory\ServerRequestFactory;
 use Laminas\Stratigility\{MiddlewarePipe, MiddlewarePipeInterface};
+use Laminas\Stratigility\Handler\NotFoundHandler;
+use Laminas\Stratigility\Middleware\OriginalMessages;
+use Mezzio\Helper\BodyParams\BodyParamsMiddleware;
 use Piccolo\Application;
 use Piccolo\Container\{Container, ContainerBuilder, ServiceProvider};
 use Piccolo\Http\{ErrorLogListener, ServerRequestErrorResponseGenerator};
+use Piccolo\Middleware\{ApiAcceptHeaderMiddleware, HttpCacheMiddleware, RequestIdMiddleware};
 use Piccolo\Runtime\{FrankenPhpWorkerRunner, RunnerInterface, SapiRunner};
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\{ServerRequestFactoryInterface,
@@ -20,6 +24,9 @@ use Psr\Http\Message\{ServerRequestFactoryInterface,
  *
  * The application, its middleware pipeline, and the runner of the environment: the FrankenPHP worker runner when the
  * script is run by a FrankenPHP worker, the classic SAPI runner otherwise.
+ *
+ * The stateless middlewares of the framework are singletons: in a worker, they are created once instead of being
+ * autowired again on each request (the other middlewares and the handlers of the application stay transient).
  *
  * The services implementing ContainerAwareInterface get the container after their creation: the scope of the request
  * they are created in, or the root container (for the singletons).
@@ -65,6 +72,14 @@ class ApplicationServiceProvider implements ServiceProvider
 
         $builder->singleton(ServerRequestErrorResponseGenerator::class);
         $builder->singleton(ErrorLogListener::class);
+
+        // Stateless middlewares: nothing of a request is kept on them
+        $builder->singleton(RequestIdMiddleware::class);
+        $builder->singleton(OriginalMessages::class);
+        $builder->singleton(ApiAcceptHeaderMiddleware::class);
+        $builder->singleton(HttpCacheMiddleware::class);
+        $builder->singleton(BodyParamsMiddleware::class);
+        $builder->singleton(NotFoundHandler::class);
 
         $builder->inflect(
             ContainerAwareInterface::class,
