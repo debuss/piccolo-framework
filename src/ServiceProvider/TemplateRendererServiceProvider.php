@@ -12,6 +12,10 @@ use Piccolo\Container\{ContainerBuilder, ServiceProvider};
  *
  * The templates of the `app` namespace are in `storage/templates` (`app::home-page`).
  *
+ * The renderer is scoped: one per request, created only by the requests rendering a template. The default parameters
+ * added during a request (addDefaultParam(), e.g. the current user) are kept by the Plates engine: with a single
+ * renderer, a worker would render them in the next requests too. Hence a singleton cannot depend on the renderer.
+ *
  * @see https://docs.mezzio.dev/mezzio/v3/features/template/interface/
  */
 class TemplateRendererServiceProvider implements ServiceProvider
@@ -19,7 +23,7 @@ class TemplateRendererServiceProvider implements ServiceProvider
 
     public function register(ContainerBuilder $builder): void
     {
-        $builder->singleton(TemplateRendererInterface::class, static function (): TemplateRendererInterface {
+        $builder->scoped(TemplateRendererInterface::class, static function (): TemplateRendererInterface {
             $plates = new Engine();
             $plates->addFolder('app', storage_path('templates'));
 
