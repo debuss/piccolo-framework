@@ -2,7 +2,7 @@
 
 namespace Piccolo\Http;
 
-use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
+use Psr\Http\Message\{RequestInterface, ResponseInterface, ServerRequestInterface, UriInterface};
 use Psr\Log\{LoggerInterface, LogLevel};
 use Throwable;
 
@@ -26,15 +26,16 @@ readonly class ErrorLogListener
         private LoggerInterface $logger
     ) {}
 
-    public function __invoke(Throwable $error, ServerRequestInterface $request, ResponseInterface $response): void
+    public function __invoke(Throwable $error, RequestInterface $request, ResponseInterface $response): void
     {
         $level = $response->getStatusCode() >= 500 ? LogLevel::ERROR : LogLevel::WARNING;
+        $uri = $request instanceof ServerRequestInterface ? $request->getAttribute('originalUri') : null;
 
         $this->logger->log($level, $error->getMessage(), [
             'exception' => $error,
             'request' => [
                 'method' => $request->getMethod(),
-                'uri' => (string)$request->getAttribute('originalUri', $request->getUri()),
+                'uri' => (string)($uri instanceof UriInterface ? $uri : $request->getUri()),
             ],
             'response' => [
                 'status' => $response->getStatusCode(),

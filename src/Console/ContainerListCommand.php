@@ -41,7 +41,8 @@ class ContainerListCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $filter = (string)$input->getArgument('filter');
+        $filter = $input->getArgument('filter');
+        $filter = is_string($filter) ? $filter : '';
         $matches = static fn (string ...$values): bool => $filter === ''
             || array_any($values, static fn (string $value): bool => stripos($value, $filter) !== false);
 

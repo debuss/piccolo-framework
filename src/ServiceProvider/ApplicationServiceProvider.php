@@ -65,7 +65,7 @@ class ApplicationServiceProvider implements ServiceProvider
                     ? new FrankenPhpWorkerRunner(
                         $serverRequestFactory,
                         $container,
-                        max(0, (int)($_SERVER['MAX_REQUESTS'] ?? 0))
+                        max(0, (int)filter_var($_SERVER['MAX_REQUESTS'] ?? 0, FILTER_VALIDATE_INT))
                     )
                     : new SapiRunner($serverRequestFactory, $container)
         );

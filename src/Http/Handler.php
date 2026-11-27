@@ -5,7 +5,8 @@ namespace Piccolo\Http;
 use InvalidArgumentException;
 use JsonException;
 use JsonSerializable;
-use Psr\Http\Message\{ResponseInterface, UriInterface};
+use LogicException;
+use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, UriInterface};
 use Psr\Http\Server\RequestHandlerInterface;
 use Awareness\{ResponseFactoryAwareInterface,
     ResponseFactoryAwareTrait,
@@ -37,6 +38,9 @@ abstract class Handler implements RequestHandlerInterface, ResponseFactoryAwareI
     }
 
     /**
+     * @param array<mixed>|JsonSerializable $data
+     * @param int<1, max> $depth
+     *
      * @throws JsonException When the data cannot be encoded
      */
     protected function json(
@@ -60,7 +64,7 @@ abstract class Handler implements RequestHandlerInterface, ResponseFactoryAwareI
             throw new InvalidArgumentException(sprintf('A redirection status must be 3xx, %d given', $status));
         }
 
-        return $this->responseFactory->createResponse($status)->withHeader('Location', (string)$uri);
+        return $this->responseFactory()->createResponse($status)->withHeader('Location', (string)$uri);
     }
 
     /**
@@ -68,14 +72,25 @@ abstract class Handler implements RequestHandlerInterface, ResponseFactoryAwareI
      */
     protected function empty(int $status = 204): ResponseInterface
     {
-        return $this->responseFactory->createResponse($status);
+        return $this->responseFactory()->createResponse($status);
     }
 
     private function content(string $content, string $contentType, int $status): ResponseInterface
     {
-        $response = $this->responseFactory->createResponse($status);
+        $response = $this->responseFactory()->createResponse($status);
         $response->getBody()->write($content);
 
         return $response->withHeader('Content-Type', $contentType);
+    }
+
+    /**
+     * @throws LogicException When the factory is not set: the handler is not resolved from the container.
+     */
+    private function responseFactory(): ResponseFactoryInterface
+    {
+        return $this->responseFactory ?? throw new LogicException(sprintf(
+            'The response factory of %s is not set: resolve it from the container, or call setResponseFactory()',
+            static::class
+        ));
     }
 }

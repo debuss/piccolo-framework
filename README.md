@@ -70,5 +70,9 @@ Rule of thumb in a worker: **never keep a request state in a singleton**: make t
 ## Tests
 
 ```bash
-composer test
+composer test     # Pest
+composer analyse  # PHPStan, level max
 ```
+
+`stubs/ContainerInterface.stub` types PSR-11 for PHPStan as the container of Piccolo (`get(Foo::class)` is a `Foo`): an
+application analysed with PHPStan can add it to the `stubFiles` of its configuration.

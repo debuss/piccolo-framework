@@ -82,6 +82,13 @@ test('pipe() throws for a middleware string that is not a real class', function 
         ->toThrow(InvalidArgumentException::class);
 });
 
+test('pipe() throws for a path that is not a string', function () {
+    ['app' => $app] = makeApplication();
+
+    expect(fn () => $app->pipe([NoopMiddleware::class], NoopMiddleware::class))
+        ->toThrow(InvalidArgumentException::class, 'The path to pipe a middleware on must be a string, array given');
+});
+
 // --- pipe(): array handling -------------------------------------------------------------------------------------
 
 test('pipe() with an array and no path pipes each middleware individually', function () {

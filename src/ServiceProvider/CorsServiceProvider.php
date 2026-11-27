@@ -8,6 +8,7 @@ use Mezzio\Cors\Configuration\{ConfigurationInterface, ProjectConfiguration, Rou
 use Mezzio\Cors\Middleware\CorsMiddleware;
 use Mezzio\Cors\Service\{ConfigurationLocator, Cors, ResponseFactory as CorsResponseFactory};
 use Mezzio\Router\RouterInterface;
+use Piccolo\ConfigValue;
 use Piccolo\Container\{ContainerBuilder, ServiceProvider};
 use Psr\Http\Message\{ResponseFactoryInterface, ServerRequestFactoryInterface, UriFactoryInterface};
 
@@ -62,8 +63,8 @@ class CorsServiceProvider implements ServiceProvider
      */
     private static function configuration(Config $config): ProjectConfiguration
     {
-        $origins = self::list($config->getOrDefault('CORS_ALLOWED_ORIGINS', ''));
-        $maxAge = trim((string)$config->getOrDefault('CORS_MAX_AGE', ''));
+        $origins = self::list(ConfigValue::string($config, 'CORS_ALLOWED_ORIGINS'));
+        $maxAge = trim(ConfigValue::string($config, 'CORS_MAX_AGE'));
         $credentialsAllowed = filter_var(
             $config->getOrDefault('CORS_ALLOW_CREDENTIALS', false),
             FILTER_VALIDATE_BOOL
@@ -79,8 +80,8 @@ class CorsServiceProvider implements ServiceProvider
 
         return new ProjectConfiguration([
             'allowed_origins' => $origins,
-            'allowed_headers' => self::list($config->getOrDefault('CORS_ALLOWED_HEADERS', 'Content-Type')),
-            'exposed_headers' => self::list($config->getOrDefault('CORS_EXPOSED_HEADERS', '')),
+            'allowed_headers' => self::list(ConfigValue::string($config, 'CORS_ALLOWED_HEADERS', 'Content-Type')),
+            'exposed_headers' => self::list(ConfigValue::string($config, 'CORS_EXPOSED_HEADERS')),
             'credentials_allowed' => $credentialsAllowed,
             'allowed_max_age' => $maxAge !== '' ? $maxAge : ConfigurationInterface::PREFLIGHT_CACHE_DISABLED
         ]);
@@ -89,9 +90,9 @@ class CorsServiceProvider implements ServiceProvider
     /**
      * @return string[] The values of a comma-separated list, trimmed, without the empty ones.
      */
-    private static function list(mixed $value): array
+    private static function list(string $value): array
     {
-        $items = array_map(trim(...), explode(',', (string)$value));
+        $items = array_map(trim(...), explode(',', $value));
 
         return array_values(array_filter($items, fn (string $item) => $item !== ''));
     }

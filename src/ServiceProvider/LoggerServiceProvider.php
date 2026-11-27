@@ -3,10 +3,12 @@
 namespace Piccolo\ServiceProvider;
 
 use Borsch\Config\Config;
+use InvalidArgumentException;
 use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\{Level, Logger};
 use Monolog\Processor\PsrLogMessageProcessor;
+use Piccolo\ConfigValue;
 use Piccolo\Container\{ContainerBuilder, ServiceProvider};
 use Piccolo\Environment;
 use Piccolo\Http\RequestIdProcessor;
@@ -37,15 +39,15 @@ class LoggerServiceProvider implements ServiceProvider
         $builder->singleton(
             Logger::class,
             static function (Config $config, Environment $environment, RequestIdProcessor $requestIdProcessor): Logger {
-                $level = Level::fromName($config->getOrDefault('LOG_LEVEL', $environment->isProduction() ? 'info' : 'debug'));
+                $level = self::level(ConfigValue::string($config, 'LOG_LEVEL', $environment->isProduction() ? 'info' : 'debug'));
 
-                $stream = $config->getOrDefault('LOG_STREAM', 'php://stderr');
+                $stream = ConfigValue::string($config, 'LOG_STREAM', 'php://stderr');
                 if (!str_contains($stream, '://') && !preg_match('#^([a-z]:)?[\\\\/]#i', $stream)) {
                     $stream = app_path($stream);
                 }
 
                 return new Logger(
-                    $config->getOrDefault('LOGGER_NAME', 'app'),
+                    ConfigValue::string($config, 'LOGGER_NAME', 'app'),
                     [new StreamHandler($stream, $level)->setFormatter(new JsonFormatter())],
                     [new PsrLogMessageProcessor(removeUsedContextFields: true), $requestIdProcessor]
                 );
@@ -68,5 +70,23 @@ class LoggerServiceProvider implements ServiceProvider
                 $service->setLogger($logger);
             }
         );
+    }
+
+    /**
+     * @throws InvalidArgumentException When LOG_LEVEL is not a level of PSR-3 (debug, info, notice, ...).
+     */
+    private static function level(string $name): Level
+    {
+        $name = strtoupper(trim($name));
+
+        if (!in_array($name, Level::NAMES, true)) {
+            throw new InvalidArgumentException(sprintf(
+                'LOG_LEVEL must be one of %s, "%s" given',
+                strtolower(implode(', ', Level::NAMES)),
+                strtolower($name)
+            ));
+        }
+
+        return Level::fromName($name);
     }
 }

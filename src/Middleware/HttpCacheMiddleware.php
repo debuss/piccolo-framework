@@ -3,7 +3,8 @@
 namespace Piccolo\Middleware;
 
 use Awareness\{StreamFactoryAwareInterface, StreamFactoryAwareTrait};
-use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
+use LogicException;
+use Psr\Http\Message\{ResponseInterface, ServerRequestInterface, StreamFactoryInterface};
 use Psr\Http\Server\{MiddlewareInterface, RequestHandlerInterface};
 
 /**
@@ -49,7 +50,7 @@ class HttpCacheMiddleware implements MiddlewareInterface, StreamFactoryAwareInte
         return $response
             ->withStatus(304)
             ->withoutHeader('Content-Length')
-            ->withBody($this->streamFactory->createStream());
+            ->withBody($this->streamFactory()->createStream());
     }
 
     /**
@@ -73,5 +74,16 @@ class HttpCacheMiddleware implements MiddlewareInterface, StreamFactoryAwareInte
         }
 
         return false;
+    }
+
+    /**
+     * @throws LogicException When the factory is not set: the middleware is not resolved from the container.
+     */
+    private function streamFactory(): StreamFactoryInterface
+    {
+        return $this->streamFactory ?? throw new LogicException(sprintf(
+            'The stream factory of %s is not set: resolve it from the container, or call setStreamFactory()',
+            static::class
+        ));
     }
 }

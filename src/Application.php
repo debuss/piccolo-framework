@@ -2,6 +2,7 @@
 
 namespace Piccolo;
 
+use Closure;
 use InvalidArgumentException;
 use Piccolo\Container\{ScopeFactory, ScopeInterface};
 use Piccolo\Middleware\LazyLoadingMiddleware;
@@ -24,7 +25,12 @@ use function Laminas\Stratigility\path;
  * in the ScopeInterface attribute of the request: the middlewares and handlers piped as class names are resolved from
  * it, so the scoped services live as long as the request, even in a worker handling many requests.
  *
+ * A middleware is a class name (resolved from the container when a request reaches it), a closure, a
+ * MiddlewareInterface or a RequestHandlerInterface.
+ *
  * @see https://docs.mezzio.dev/mezzio/v3/features/application/
+ *
+ * @phpstan-type Middleware string|Closure|MiddlewareInterface|RequestHandlerInterface
  */
 final readonly class Application implements MiddlewareInterface, RequestHandlerInterface
 {
@@ -79,6 +85,15 @@ final readonly class Application implements MiddlewareInterface, RequestHandlerI
     }
 
     /**
+     * Pipes a middleware (or a list of middlewares) on every path, or only on the given one:
+     *
+     *  $app->pipe(ErrorHandler::class);
+     *  $app->pipe('/api', [ProblemDetailsMiddleware::class, BodyParamsMiddleware::class]);
+     *
+     * @param Middleware|list<Middleware> $middlewareOrPath The middleware, or the path when a middleware follows.
+     * @param Middleware|list<Middleware>|null $middleware
+     *
+     * @throws InvalidArgumentException When the path is not a string.
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
@@ -86,8 +101,17 @@ final readonly class Application implements MiddlewareInterface, RequestHandlerI
         string|array|callable|MiddlewareInterface|RequestHandlerInterface $middlewareOrPath,
         null|string|array|callable|MiddlewareInterface|RequestHandlerInterface $middleware = null
     ): void {
-        $middleware ??= $middlewareOrPath;
-        $path = $middleware === $middlewareOrPath ? '/' : $middlewareOrPath;
+        if ($middleware === null) {
+            $path = '/';
+            $middleware = $middlewareOrPath;
+        } elseif (is_string($middlewareOrPath)) {
+            $path = $middlewareOrPath;
+        } else {
+            throw new InvalidArgumentException(sprintf(
+                'The path to pipe a middleware on must be a string, %s given',
+                get_debug_type($middlewareOrPath)
+            ));
+        }
 
         if (is_array($middleware)) {
             if ($path === '/') {
@@ -115,6 +139,9 @@ final readonly class Application implements MiddlewareInterface, RequestHandlerI
         $this->pipeline->pipe($middleware);
     }
 
+    /**
+     * @param Middleware $middleware
+     */
     private function toMiddleware(
         string|callable|MiddlewareInterface|RequestHandlerInterface $middleware
     ): MiddlewareInterface {
@@ -128,7 +155,7 @@ final readonly class Application implements MiddlewareInterface, RequestHandlerI
             return new RequestHandlerMiddleware($middleware);
         }
 
-        if (is_string($middleware) && !$middleware instanceof MiddlewareInterface) {
+        if (is_string($middleware)) {
             throw new InvalidArgumentException(
                 sprintf(
                     'Middleware must be an instance of "%s" or "%s", "%s" given',
@@ -146,9 +173,19 @@ final readonly class Application implements MiddlewareInterface, RequestHandlerI
      * The middleware can also be an array, e.g. the middlewares of the route followed by its request handler: they are
      * grouped into a single nested pipe, only executed when the route is matched.
      *
+     * @param non-empty-string $path
+     * @param Middleware|list<Middleware> $middleware
+     * @param list<string>|null $methods Null for any method.
+     * @param non-empty-string|null $name
+     *
      * @throws InvalidArgumentException If the middleware is an empty array.
      */
-    public function route(string $path, $middleware, ?array $methods = null, ?string $name = null): Route
+    public function route(
+        string $path,
+        string|array|callable|MiddlewareInterface|RequestHandlerInterface $middleware,
+        ?array $methods = null,
+        ?string $name = null
+    ): Route
     {
         if (!is_array($middleware)) {
             return $this->routes->route($path, $this->toMiddleware($middleware), $methods, $name);
@@ -166,34 +203,88 @@ final readonly class Application implements MiddlewareInterface, RequestHandlerI
         return $this->routes->route($path, $group, $methods, $name);
     }
 
-    public function get(string $path, $middleware, ?string $name = null): Route
+    /**
+     * @param non-empty-string $path
+     * @param Middleware|list<Middleware> $middleware
+     * @param non-empty-string|null $name
+     */
+    public function get(
+        string $path,
+        string|array|callable|MiddlewareInterface|RequestHandlerInterface $middleware,
+        ?string $name = null
+    ): Route
     {
         return $this->route($path, $middleware, ['GET'], $name);
     }
 
-    public function post(string $path, $middleware, ?string $name = null): Route
+    /**
+     * @param non-empty-string $path
+     * @param Middleware|list<Middleware> $middleware
+     * @param non-empty-string|null $name
+     */
+    public function post(
+        string $path,
+        string|array|callable|MiddlewareInterface|RequestHandlerInterface $middleware,
+        ?string $name = null
+    ): Route
     {
         return $this->route($path, $middleware, ['POST'], $name);
     }
 
-    public function put(string $path, $middleware, ?string $name = null): Route
+    /**
+     * @param non-empty-string $path
+     * @param Middleware|list<Middleware> $middleware
+     * @param non-empty-string|null $name
+     */
+    public function put(
+        string $path,
+        string|array|callable|MiddlewareInterface|RequestHandlerInterface $middleware,
+        ?string $name = null
+    ): Route
     {
         return $this->route($path, $middleware, ['PUT'], $name);
     }
 
-    public function patch(string $path, $middleware, ?string $name = null): Route
+    /**
+     * @param non-empty-string $path
+     * @param Middleware|list<Middleware> $middleware
+     * @param non-empty-string|null $name
+     */
+    public function patch(
+        string $path,
+        string|array|callable|MiddlewareInterface|RequestHandlerInterface $middleware,
+        ?string $name = null
+    ): Route
     {
         return $this->route($path, $middleware, ['PATCH'], $name);
     }
 
-    public function delete(string $path, $middleware, ?string $name = null): Route
+    /**
+     * @param non-empty-string $path
+     * @param Middleware|list<Middleware> $middleware
+     * @param non-empty-string|null $name
+     */
+    public function delete(
+        string $path,
+        string|array|callable|MiddlewareInterface|RequestHandlerInterface $middleware,
+        ?string $name = null
+    ): Route
     {
         return $this->route($path, $middleware, ['DELETE'], $name);
     }
 
-    public function any(string $path, $middleware, ?string $name = null): Route
+    /**
+     * @param non-empty-string $path
+     * @param Middleware|list<Middleware> $middleware
+     * @param non-empty-string|null $name
+     */
+    public function any(
+        string $path,
+        string|array|callable|MiddlewareInterface|RequestHandlerInterface $middleware,
+        ?string $name = null
+    ): Route
     {
-        return $this->route($path, $middleware,  null, $name);
+        return $this->route($path, $middleware, null, $name);
     }
 
     /**

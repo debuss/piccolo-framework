@@ -60,7 +60,9 @@ class ContainerCheckCommand extends Command
             array_push($services, ...MiddlewareInspector::services($route->getMiddleware()));
         }
 
-        $services = array_values(array_diff(array_unique($services), $input->getOption('exclude')));
+        $exclude = $input->getOption('exclude');
+        $exclude = is_array($exclude) ? array_filter($exclude, is_string(...)) : [];
+        $services = array_values(array_diff(array_unique($services), $exclude));
 
         $scope = $container->createScope();
         $failures = [];
