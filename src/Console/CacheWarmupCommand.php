@@ -2,7 +2,7 @@
 
 namespace Piccolo\Console;
 
-use Piccolo\{Application, Environment};
+use Piccolo\{Application, ConfigFile, Environment};
 use Mezzio\Router\RouterInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ServerRequestFactoryInterface;
@@ -49,7 +49,7 @@ class CacheWarmupCommand extends Command
         // Registering the routes generates the cache of the route definitions (see config/routes.php), then the first
         // match compiles them for FastRoute, which writes its own cache.
         $application = $this->container->get(Application::class);
-        (require config_path('routes.php'))($application, $this->container);
+        ConfigFile::closure(config_path('routes.php'))($application, $this->container);
 
         $request = $this->container->get(ServerRequestFactoryInterface::class)->createServerRequest('GET', '/');
         $this->container->get(RouterInterface::class)->match($request);

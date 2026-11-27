@@ -39,8 +39,10 @@ class RoutesMatchCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $method = strtoupper((string)$input->getArgument('method'));
-        $uri = (string)$input->getArgument('uri');
+        $method = $input->getArgument('method');
+        $method = strtoupper(is_string($method) ? $method : '');
+        $uri = $input->getArgument('uri');
+        $uri = is_string($uri) ? $uri : '';
 
         $this->kernel->http();
         $container = $this->kernel->container();
@@ -59,7 +61,11 @@ class RoutesMatchCommand extends Command
                 ['Methods' => implode('|', $route->getAllowedMethods() ?? ['ANY'])],
                 ['Middlewares and handler' => MiddlewareInspector::describe($route->getMiddleware())],
                 ['Parameters' => $parameters === [] ? 'none' : implode(', ', array_map(
-                    static fn (string $name, mixed $value): string => sprintf('%s = %s', $name, $value),
+                    static fn (string $name, mixed $value): string => sprintf(
+                        '%s = %s',
+                        $name,
+                        is_scalar($value) ? (string)$value : get_debug_type($value)
+                    ),
                     array_keys($parameters),
                     $parameters
                 ))]

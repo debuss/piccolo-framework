@@ -19,7 +19,7 @@ enum Environment: string
 
     public static function fromConfig(Config $config): self
     {
-        return self::tryFrom((string)$config->getOrDefault('APP_ENV')) ?? self::Development;
+        return self::tryFrom(ConfigValue::string($config, 'APP_ENV')) ?? self::Development;
     }
 
     public function isProduction(): bool

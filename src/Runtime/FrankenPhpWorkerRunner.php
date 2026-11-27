@@ -20,6 +20,9 @@ use Psr\Http\Server\RequestHandlerInterface;
  *
  * Each request gets its own container scope from the Application: scoped services never outlive their request.
  *
+ * The worker ignores the clients closing the connection during a request (ignore_user_abort()), as recommended by
+ * FrankenPHP: the request is handled to the end, and the worker goes on with the next ones instead of stopping.
+ *
  * @see https://frankenphp.dev/docs/worker/
  */
 readonly class FrankenPhpWorkerRunner extends SapiRunner
@@ -51,6 +54,9 @@ readonly class FrankenPhpWorkerRunner extends SapiRunner
     {
         $runner = $this->runner($handler);
         $handleRequest = $this->handleRequest ?? frankenphp_handle_request(...);
+
+        // A client closing the connection during a request must not stop the worker, which handles the next ones
+        ignore_user_abort(true);
 
         for ($handled = 0; $this->maxRequests === 0 || $handled < $this->maxRequests; $handled++) {
             $keepRunning = $handleRequest($runner->run(...));

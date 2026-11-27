@@ -73,3 +73,27 @@ test('resets the logger and the request identifier when the container is reset',
 
     expect($handler->getRecords()[1]->extra)->toBe([]);
 });
+
+test('reads LOG_LEVEL whatever its case', function () {
+    $container = new ContainerBuilder()
+        ->instance(Config::class, new Config(['LOG_STREAM' => 'php://memory', 'LOG_LEVEL' => ' Warning ']))
+        ->instance(Environment::class, Environment::Development)
+        ->addProvider(new LoggerServiceProvider())
+        ->build();
+
+    $logger = $container->get(Logger::class);
+
+    expect($logger->isHandling(Monolog\Level::Warning))->toBeTrue()
+        ->and($logger->isHandling(Monolog\Level::Info))->toBeFalse();
+});
+
+test('fails with the levels allowed when LOG_LEVEL is not one of them', function () {
+    $container = new ContainerBuilder()
+        ->instance(Config::class, new Config(['LOG_STREAM' => 'php://memory', 'LOG_LEVEL' => 'verbose']))
+        ->instance(Environment::class, Environment::Development)
+        ->addProvider(new LoggerServiceProvider())
+        ->build();
+
+    expect(fn () => $container->get(Logger::class))
+        ->toThrow(InvalidArgumentException::class, 'LOG_LEVEL must be one of debug, info, notice, warning, error, critical, alert, emergency, "verbose" given');
+});

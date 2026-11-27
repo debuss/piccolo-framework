@@ -2,11 +2,11 @@
 
 namespace Piccolo\Middleware;
 
-use Laminas\Stratigility\Middleware\RequestHandlerMiddleware;
 use Piccolo\Container\ScopeInterface;
 use Psr\Container\{ContainerExceptionInterface, ContainerInterface, NotFoundExceptionInterface};
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\{MiddlewareInterface, RequestHandlerInterface};
+use UnexpectedValueException;
 
 /**
  * LazyLoadingMiddleware
@@ -33,16 +33,25 @@ readonly class LazyLoadingMiddleware implements MiddlewareInterface
     /**
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
+     * @throws UnexpectedValueException When the entry is neither a middleware nor a request handler.
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $container = $request->getAttribute(ScopeInterface::class) ?? $this->container;
+        $scope = $request->getAttribute(ScopeInterface::class);
+        $container = $scope instanceof ContainerInterface ? $scope : $this->container;
 
         $middleware = $container->get($this->middleware);
-        if ($middleware instanceof RequestHandlerInterface && ! $middleware instanceof MiddlewareInterface) {
-            $middleware = new RequestHandlerMiddleware($middleware);
-        }
 
-        return $middleware->process($request, $handler);
+        return match (true) {
+            $middleware instanceof MiddlewareInterface => $middleware->process($request, $handler),
+            $middleware instanceof RequestHandlerInterface => $middleware->handle($request),
+            default => throw new UnexpectedValueException(sprintf(
+                '"%s" must resolve to a %s or a %s, %s given',
+                $this->middleware,
+                MiddlewareInterface::class,
+                RequestHandlerInterface::class,
+                get_debug_type($middleware)
+            )),
+        };
     }
 }

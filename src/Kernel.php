@@ -20,6 +20,7 @@ use Piccolo\ServiceProvider\{ApplicationServiceProvider,
     LoggerServiceProvider,
     ProblemDetailsServiceProvider,
     TemplateRendererServiceProvider};
+use LogicException;
 use Symfony\Component\Console\Application as Console;
 use Symfony\Component\Console\CommandLoader\ContainerCommandLoader;
 
@@ -69,9 +70,10 @@ final class Kernel
         ini_set('display_errors', $environment->isProduction() ? '0' : '1');
         ini_set('display_startup_errors', $environment->isProduction() ? '0' : '1');
 
-        date_default_timezone_set($config->getOrDefault('TIMEZONE', 'UTC'));
+        date_default_timezone_set(ConfigValue::string($config, 'TIMEZONE', 'UTC'));
 
         // The kernel itself, for the commands needing the HTTP application (see http())
+        /** @var self|null $kernel */
         $kernel = null;
 
         $builder = new ContainerBuilder()
@@ -79,7 +81,7 @@ final class Kernel
             ->instance(Config::class, $config)
             ->instance(Environment::class, $environment)
             ->singleton(self::class, static function () use (&$kernel): self {
-                return $kernel;
+                return $kernel ?? throw new LogicException('The kernel cannot be resolved while it boots');
             });
 
         foreach (self::providers() as $provider) {
@@ -88,7 +90,7 @@ final class Kernel
 
         $definitions = $paths->config('container.php');
         if (is_file($definitions)) {
-            (require $definitions)($builder, $config, $environment);
+            ConfigFile::closure($definitions)($builder, $config, $environment);
         }
 
         return $kernel = new self($paths, $config, $environment, $builder->build());
@@ -130,7 +132,7 @@ final class Kernel
             $this->httpLoaded = true;
 
             foreach (['pipeline.php', 'routes.php'] as $file) {
-                (require $this->paths->config($file))($application, $this->container);
+                ConfigFile::closure($this->paths->config($file))($application, $this->container);
             }
         }
 
@@ -157,7 +159,7 @@ final class Kernel
 
         $file = $this->paths->config('commands.php');
         if (is_file($file)) {
-            $commands = [...$commands, ...require $file];
+            $commands = [...$commands, ...ConfigFile::commands($file)];
         }
 
         $scope = $this->container->createScope();
@@ -173,7 +175,7 @@ final class Kernel
     {
         $file = $paths->config('configuration.php');
         if (is_file($file)) {
-            return require $file;
+            return ConfigFile::config($file);
         }
 
         // Merged in order (the last one wins): the .env file, optional, then the real environment variables

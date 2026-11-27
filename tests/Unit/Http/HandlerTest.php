@@ -140,3 +140,15 @@ test('creates an empty response, 204 No Content by default', function () {
         ->and((string)$noContent->getBody())->toBe('')
         ->and($accepted->getStatusCode())->toBe(202);
 });
+
+test('tells how to set the response factory when it is missing', function () {
+    $handler = new class extends Handler {
+        public function handle(ServerRequestInterface $request): ResponseInterface
+        {
+            return $this->text('');
+        }
+    };
+
+    expect(fn () => $handler->handle(new ServerRequest('GET', '/')))
+        ->toThrow(LogicException::class, 'resolve it from the container, or call setResponseFactory()');
+});

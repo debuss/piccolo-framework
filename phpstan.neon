@@ -1,0 +1,7 @@
+parameters:
+    level: max
+    paths:
+        - src
+    stubFiles:
+        # PSR-11 typed as the container of Piccolo: get(Foo::class) is a Foo
+        - stubs/ContainerInterface.stub

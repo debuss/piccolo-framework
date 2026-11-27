@@ -5,6 +5,7 @@ namespace Piccolo\Console;
 use Laminas\Stratigility\Middleware\PathMiddlewareDecorator;
 use Laminas\Stratigility\MiddlewarePipe;
 use Piccolo\Middleware\LazyLoadingMiddleware;
+use LogicException;
 use Psr\Http\Server\MiddlewareInterface;
 use ReflectionProperty;
 
@@ -55,6 +56,10 @@ final class MiddlewareInspector
      */
     private static function decorated(PathMiddlewareDecorator $decorator): MiddlewareInterface
     {
-        return new ReflectionProperty(PathMiddlewareDecorator::class, 'middleware')->getValue($decorator);
+        $middleware = new ReflectionProperty(PathMiddlewareDecorator::class, 'middleware')->getValue($decorator);
+
+        return $middleware instanceof MiddlewareInterface
+            ? $middleware
+            : throw new LogicException('The middleware of a PathMiddlewareDecorator cannot be read');
     }
 }
