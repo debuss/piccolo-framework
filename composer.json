@@ -61,6 +61,9 @@
     "psr/log": "^3.0",
     "symfony/console": "^8.1"
   },
+  "suggest": {
+    "pestphp/pest": "For the end-to-end tests with Piccolo\\Testing\\TestClient (or phpunit/phpunit)"
+  },
   "require-dev": {
     "pestphp/pest": "^5.1",
     "phpstan/phpstan": "^2.1"

@@ -11,7 +11,7 @@ use Mezzio\Helper\BodyParams\BodyParamsMiddleware;
 use Piccolo\Application;
 use Piccolo\Container\{Container, ContainerBuilder, ServiceProvider};
 use Piccolo\Http\{ErrorLogListener, ServerRequestErrorResponseGenerator};
-use Piccolo\Middleware\{ApiAcceptHeaderMiddleware, HttpCacheMiddleware, RequestIdMiddleware};
+use Piccolo\Middleware\{ApiAcceptHeaderMiddleware, HttpCacheMiddleware, RequestIdMiddleware, SecurityHeadersMiddleware};
 use Piccolo\Runtime\{FrankenPhpWorkerRunner, RunnerInterface, SapiRunner};
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\{ServerRequestFactoryInterface,
@@ -75,6 +75,7 @@ class ApplicationServiceProvider implements ServiceProvider
 
         // Stateless middlewares: nothing of a request is kept on them
         $builder->singleton(RequestIdMiddleware::class);
+        $builder->singleton(SecurityHeadersMiddleware::class);
         $builder->singleton(OriginalMessages::class);
         $builder->singleton(ApiAcceptHeaderMiddleware::class);
         $builder->singleton(HttpCacheMiddleware::class);

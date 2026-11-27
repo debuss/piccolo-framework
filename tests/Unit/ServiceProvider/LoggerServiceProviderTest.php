@@ -97,3 +97,35 @@ test('fails with the levels allowed when LOG_LEVEL is not one of them', function
     expect(fn () => $container->get(Logger::class))
         ->toThrow(InvalidArgumentException::class, 'LOG_LEVEL must be one of debug, info, notice, warning, error, critical, alert, emergency, "verbose" given');
 });
+
+test('gives the instances of a class the same logger named after it, created once', function () {
+    $container = makeLoggerContainer();
+    $first = $container->get(LoggerAwareService::class);
+    $second = $container->get(LoggerAwareService::class);
+    $other = $container->get(OtherLoggerAwareService::class);
+
+    expect($first)->not->toBe($second)
+        ->and($first->logger())->toBe($second->logger())
+        ->and($first->logger()->getName())->toBe(LoggerAwareService::class)
+        ->and($other->logger()->getName())->toBe(OtherLoggerAwareService::class);
+});
+
+final class LoggerAwareService implements LoggerAwareInterface
+{
+    use LoggerAwareTrait;
+
+    public function logger(): ?LoggerInterface
+    {
+        return $this->logger;
+    }
+}
+
+final class OtherLoggerAwareService implements LoggerAwareInterface
+{
+    use LoggerAwareTrait;
+
+    public function logger(): ?LoggerInterface
+    {
+        return $this->logger;
+    }
+}
