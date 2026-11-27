@@ -30,13 +30,7 @@ readonly class RequestIdMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $requestId = $request->getHeaderLine(self::HEADER);
-
-        // The header comes from the client when there is no reverse proxy setting it, so it is never trusted as is: an
-        // invalid one (too long, or with spaces or line breaks that would forge log lines) is replaced.
-        if (!preg_match('/^[\w.:-]{1,128}$/', $requestId)) {
-            $requestId = bin2hex(random_bytes(16));
-        }
+        $requestId = self::identify($request->getHeaderLine(self::HEADER));
 
         $this->processor->setRequestId($requestId);
 
@@ -48,5 +42,16 @@ readonly class RequestIdMiddleware implements MiddlewareInterface
         }
 
         return $response->withHeader(self::HEADER, $requestId);
+    }
+
+    /**
+     * The identifier of a request: its X-Request-Id header when valid, a random one otherwise.
+     *
+     * The header comes from the client when there is no reverse proxy setting it, so it is never trusted as is: an
+     * invalid one (too long, or with spaces or line breaks that would forge log lines) is replaced.
+     */
+    public static function identify(string $header): string
+    {
+        return preg_match('/^[\w.:-]{1,128}$/', $header) === 1 ? $header : bin2hex(random_bytes(16));
     }
 }
