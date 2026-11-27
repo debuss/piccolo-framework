@@ -10,6 +10,7 @@ beforeEach(function () {
     $this->server = $_SERVER;
     $this->get = $_GET;
     $this->timezone = date_default_timezone_get();
+    $this->ignoreUserAbort = ignore_user_abort();
     RequestCounter::$disposed = [];
 });
 
@@ -17,6 +18,7 @@ afterEach(function () {
     $_SERVER = $this->server;
     $_GET = $this->get;
     date_default_timezone_set($this->timezone);
+    ignore_user_abort((bool)$this->ignoreUserAbort);
     Paths::setCurrent(new Paths(dirname(__DIR__, 2)));
 });
 
@@ -111,4 +113,12 @@ test('stops after the maximum number of requests', function () {
     [, $emitter] = runWorker(['/count', '/count', '/count', '/count'], maxRequests: 2);
 
     expect($emitter->responses)->toHaveCount(2);
+});
+
+test('keeps running when a client closes the connection during a request', function () {
+    ignore_user_abort(false);
+
+    runWorker(['/count']);
+
+    expect(ignore_user_abort())->toBe(1);
 });
