@@ -50,3 +50,20 @@ test('does not log headers, cookies nor body', function () {
 
     expect($context)->not->toContain('secret');
 });
+
+test('logs the errors of the client (4xx) as warnings', function (int $status, string $level) {
+    $handler = new TestHandler();
+
+    new ErrorLogListener(new Logger('test', [$handler]))(
+        new RuntimeException('boom'),
+        new ServerRequest('GET', '/api/posts/1'),
+        new Response($status)
+    );
+
+    expect($handler->getRecords()[0]->level->getName())->toBe($level);
+})->with([
+    [404, 'WARNING'],
+    [422, 'WARNING'],
+    [500, 'ERROR'],
+    [503, 'ERROR'],
+]);

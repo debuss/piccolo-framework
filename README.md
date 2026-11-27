@@ -18,7 +18,7 @@ composer create-project debuss-a/piccolo my-app   # the skeleton, which requires
 | `Piccolo\Runtime` | `SapiRunner` (PHP-FPM, built-in server, ...) and `FrankenPhpWorkerRunner`, chosen automatically |
 | `Piccolo\ServiceProvider` | HTTP factories (Nyholm PSR-7), logger (Monolog), router (FastRoute), error handler, Problem Details, CORS, templates (Plates) |
 | `Piccolo\Middleware` | `RequestIdMiddleware`, `HttpCacheMiddleware`, `ApiAcceptHeaderMiddleware`, `LazyLoadingMiddleware` |
-| `Piccolo\Http` | `Handler` (base class of the request handlers: `html()`, `text()`, `xml()`, `json()`, `redirect()`, `empty()`), error logging, request identifier |
+| `Piccolo\Http` | `Handler` (base class of the request handlers: `html()`, `text()`, `xml()`, `json()`, `redirect()`, `empty()`), HTTP exceptions (`NotFoundException`, `UnprocessableEntityException`, ...) answered as Problem Details, error logging, request identifier |
 | `Piccolo\Console` | `about`, `cache:clear`, `cache:warmup`, `container:check`, `container:list`, `routes:list`, `routes:match` |
 | `Piccolo\Paths` | The directories of the application, and the helpers `app_path()`, `config_path()`, `storage_path()`, ... |
 

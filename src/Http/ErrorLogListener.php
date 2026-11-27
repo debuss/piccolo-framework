@@ -3,13 +3,14 @@
 namespace Piccolo\Http;
 
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
-use Psr\Log\LoggerInterface;
+use Psr\Log\{LoggerInterface, LogLevel};
 use Throwable;
 
 /**
  * Error Log Listener
  *
- * Logs the errors caught by the ErrorHandler and ProblemDetailsMiddleware listeners (both share this signature).
+ * Logs the errors caught by the ErrorHandler and ProblemDetailsMiddleware listeners (both share this signature): as
+ * errors for a 5xx response, as warnings for a 4xx one (an error of the client, e.g. a NotFoundException).
  *
  * Only non-sensitive request data is logged: headers, cookies and body can contain credentials (Authorization header,
  * session cookie, password field, ...) and logs are often shipped to third-party services.
@@ -27,7 +28,9 @@ readonly class ErrorLogListener
 
     public function __invoke(Throwable $error, ServerRequestInterface $request, ResponseInterface $response): void
     {
-        $this->logger->error($error->getMessage(), [
+        $level = $response->getStatusCode() >= 500 ? LogLevel::ERROR : LogLevel::WARNING;
+
+        $this->logger->log($level, $error->getMessage(), [
             'exception' => $error,
             'request' => [
                 'method' => $request->getMethod(),
