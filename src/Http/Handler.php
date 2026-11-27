@@ -2,9 +2,10 @@
 
 namespace Piccolo\Http;
 
+use InvalidArgumentException;
 use JsonException;
 use JsonSerializable;
-use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\{ResponseInterface, UriInterface};
 use Psr\Http\Server\RequestHandlerInterface;
 use Awareness\{ResponseFactoryAwareInterface,
     ResponseFactoryAwareTrait,
@@ -22,10 +23,17 @@ abstract class Handler implements RequestHandlerInterface, ResponseFactoryAwareI
 
     protected function html(string $content, int $status = 200): ResponseInterface
     {
-        $response = $this->responseFactory->createResponse($status);
-        $response->getBody()->write($content);
+        return $this->content($content, 'text/html; charset=utf-8', $status);
+    }
 
-        return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+    protected function text(string $content, int $status = 200): ResponseInterface
+    {
+        return $this->content($content, 'text/plain; charset=utf-8', $status);
+    }
+
+    protected function xml(string $content, int $status = 200): ResponseInterface
+    {
+        return $this->content($content, 'application/xml; charset=utf-8', $status);
     }
 
     /**
@@ -37,11 +45,37 @@ abstract class Handler implements RequestHandlerInterface, ResponseFactoryAwareI
         int $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
         int $depth = 512
     ): ResponseInterface {
-        $json = json_encode($data, $flags | JSON_THROW_ON_ERROR, $depth);
+        return $this->content(json_encode($data, $flags | JSON_THROW_ON_ERROR, $depth), 'application/json', $status);
+    }
 
+    /**
+     * A redirection to the URI: 302 Found by default, 303 See Other after a form, 301 / 308 for a permanent one (307 /
+     * 308 keep the method and the body of the request).
+     *
+     * @throws InvalidArgumentException When the status is not a redirection (3xx)
+     */
+    protected function redirect(string|UriInterface $uri, int $status = 302): ResponseInterface
+    {
+        if ($status < 300 || $status > 399) {
+            throw new InvalidArgumentException(sprintf('A redirection status must be 3xx, %d given', $status));
+        }
+
+        return $this->responseFactory->createResponse($status)->withHeader('Location', (string)$uri);
+    }
+
+    /**
+     * A response without body: 204 No Content by default.
+     */
+    protected function empty(int $status = 204): ResponseInterface
+    {
+        return $this->responseFactory->createResponse($status);
+    }
+
+    private function content(string $content, string $contentType, int $status): ResponseInterface
+    {
         $response = $this->responseFactory->createResponse($status);
-        $response->getBody()->write($json);
+        $response->getBody()->write($content);
 
-        return $response->withHeader('Content-Type', 'application/json');
+        return $response->withHeader('Content-Type', $contentType);
     }
 }
