@@ -4,7 +4,13 @@ namespace Piccolo;
 
 use Borsch\Config\{Aggregator, Config};
 use Borsch\Config\Provider\DotEnvProvider;
-use Piccolo\Console\{CacheClearCommand, CacheWarmupCommand, RoutesListCommand};
+use Piccolo\Console\{AboutCommand,
+    CacheClearCommand,
+    CacheWarmupCommand,
+    ContainerCheckCommand,
+    ContainerListCommand,
+    RoutesListCommand,
+    RoutesMatchCommand};
 use Piccolo\Container\{Container, ContainerBuilder, ServiceProvider};
 use Piccolo\ServiceProvider\{ApplicationServiceProvider,
     CorsServiceProvider,
@@ -65,10 +71,16 @@ final class Kernel
 
         date_default_timezone_set($config->getOrDefault('TIMEZONE', 'UTC'));
 
+        // The kernel itself, for the commands needing the HTTP application (see http())
+        $kernel = null;
+
         $builder = new ContainerBuilder()
             ->instance(Paths::class, $paths)
             ->instance(Config::class, $config)
-            ->instance(Environment::class, $environment);
+            ->instance(Environment::class, $environment)
+            ->singleton(self::class, static function () use (&$kernel): self {
+                return $kernel;
+            });
 
         foreach (self::providers() as $provider) {
             $builder->addProvider($provider);
@@ -79,7 +91,7 @@ final class Kernel
             (require $definitions)($builder, $config, $environment);
         }
 
-        return new self($paths, $config, $environment, $builder->build());
+        return $kernel = new self($paths, $config, $environment, $builder->build());
     }
 
     /**
@@ -134,9 +146,13 @@ final class Kernel
     public function console(string $name = 'Piccolo'): Console
     {
         $commands = [
+            'about' => AboutCommand::class,
             'cache:clear' => CacheClearCommand::class,
             'cache:warmup' => CacheWarmupCommand::class,
+            'container:check' => ContainerCheckCommand::class,
+            'container:list' => ContainerListCommand::class,
             'routes:list' => RoutesListCommand::class,
+            'routes:match' => RoutesMatchCommand::class,
         ];
 
         $file = $this->paths->config('commands.php');
