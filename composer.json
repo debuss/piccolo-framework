@@ -39,7 +39,7 @@
     "borschphp/config": "^1.4",
     "debuss-a/attribute-routing": "^3.0",
     "debuss-a/awareness": "^1.2",
-    "debuss-a/piccolo-container": "^0.1",
+    "debuss-a/piccolo-container": "^0.1.1",
     "debuss-a/server-request-factory": "^1.0",
     "laminas/laminas-httphandlerrunner": "^2.13",
     "laminas/laminas-stratigility": "^4.3",
