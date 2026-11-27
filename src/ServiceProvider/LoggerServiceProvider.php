@@ -59,15 +59,28 @@ class LoggerServiceProvider implements ServiceProvider
 
         // For every class implementing the LoggerAwareInterface, inject the logger instance into the class and change
         // the name to the class name so that you know from where the log is originated.
+        // The logger of each class is created once (withName() clones the logger), and created again if the logger
+        // changes: a transient handler gets the same one on each request.
+        /** @var array<class-string, Logger> $named */
+        $named = [];
+        $base = null;
+
         $builder->inflect(
             LoggerAwareInterface::class,
-            static function (LoggerAwareInterface $service, ContainerInterface $container): void {
+            static function (LoggerAwareInterface $service, ContainerInterface $container) use (&$named, &$base): void {
                 $logger = $container->get(LoggerInterface::class);
-                if ($logger instanceof Logger) {
-                    $logger = $logger->withName($service::class);
+                if (!$logger instanceof Logger) {
+                    $service->setLogger($logger);
+
+                    return;
                 }
 
-                $service->setLogger($logger);
+                if ($logger !== $base) {
+                    $base = $logger;
+                    $named = [];
+                }
+
+                $service->setLogger($named[$service::class] ??= $logger->withName($service::class));
             }
         );
     }
