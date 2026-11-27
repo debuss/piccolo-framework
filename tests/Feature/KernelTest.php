@@ -76,6 +76,7 @@ test('creates the stateless middlewares of the framework once, for all the reque
     Laminas\Stratigility\Middleware\OriginalMessages::class,
     Piccolo\Middleware\ApiAcceptHeaderMiddleware::class,
     Piccolo\Middleware\HttpCacheMiddleware::class,
+    Piccolo\Middleware\SecurityHeadersMiddleware::class,
     BodyParamsMiddleware::class,
     Laminas\Stratigility\Handler\NotFoundHandler::class,
 ]);
