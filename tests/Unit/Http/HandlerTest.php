@@ -1,7 +1,8 @@
 <?php declare(strict_types=1);
 
 use Piccolo\Http\Handler;
-use Laminas\Diactoros\{ResponseFactory, ServerRequest, StreamFactory};
+use Nyholm\Psr7\Factory\Psr17Factory;
+use Nyholm\Psr7\ServerRequest;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 
 /**
@@ -27,14 +28,14 @@ function makeHandler(): Handler
         }
     };
 
-    $handler->setResponseFactory(new ResponseFactory());
-    $handler->setStreamFactory(new StreamFactory());
+    $handler->setResponseFactory(new Psr17Factory());
+    $handler->setStreamFactory(new Psr17Factory());
 
     return $handler;
 }
 
 test('is a request handler', function () {
-    expect(makeHandler()->handle(new ServerRequest()))->toBeInstanceOf(ResponseInterface::class);
+    expect(makeHandler()->handle(new ServerRequest('GET', '/')))->toBeInstanceOf(ResponseInterface::class);
 });
 
 test('creates an HTML response', function () {

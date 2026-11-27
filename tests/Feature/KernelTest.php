@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
 use Borsch\Config\Config;
-use Laminas\Diactoros\ServerRequest;
+use Nyholm\Psr7\ServerRequest;
 use Laminas\Stratigility\Middleware\ErrorHandler;
 use Mezzio\Cors\Middleware\CorsMiddleware;
 use Mezzio\Helper\BodyParams\BodyParamsMiddleware;
@@ -91,9 +91,9 @@ test('gives the application with the pipeline and the routes, loaded once', func
 
     expect($kernel->http())->toBe($application)
         ->and($application->getRoutes())->toHaveCount(2)
-        ->and($application->handle(new ServerRequest(uri: '/count', method: 'GET'))->getStatusCode())->toBe(200)
-        ->and($application->handle(new ServerRequest(uri: '/count', method: 'POST'))->getStatusCode())->toBe(405)
-        ->and($application->handle(new ServerRequest(uri: '/missing', method: 'GET'))->getStatusCode())->toBe(404);
+        ->and($application->handle(new ServerRequest('GET', '/count'))->getStatusCode())->toBe(200)
+        ->and($application->handle(new ServerRequest('POST', '/count'))->getStatusCode())->toBe(405)
+        ->and($application->handle(new ServerRequest('GET', '/missing'))->getStatusCode())->toBe(404);
 });
 
 test('gives the console with the commands of the framework and of config/commands.php, resolved in a scope', function () {

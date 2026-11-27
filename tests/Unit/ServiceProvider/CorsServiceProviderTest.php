@@ -2,7 +2,8 @@
 
 use Piccolo\ServiceProvider\CorsServiceProvider;
 use Borsch\Config\Config;
-use Laminas\Diactoros\{ResponseFactory, ServerRequest, ServerRequestFactory, UriFactory};
+use Nyholm\Psr7\Factory\Psr17Factory;
+use Nyholm\Psr7\ServerRequest;
 use Piccolo\Container\{Container, ContainerBuilder};
 use Mezzio\Cors\Configuration\ConfigurationInterface;
 use Mezzio\Cors\Middleware\CorsMiddleware;
@@ -21,9 +22,9 @@ function makeCorsContainer(array $config): Container
 
     return new ContainerBuilder()
         ->instance(Config::class, new Config($config))
-        ->instance(UriFactoryInterface::class, new UriFactory())
-        ->instance(ServerRequestFactoryInterface::class, new ServerRequestFactory())
-        ->instance(ResponseFactoryInterface::class, new ResponseFactory())
+        ->instance(UriFactoryInterface::class, new Psr17Factory())
+        ->instance(ServerRequestFactoryInterface::class, new Psr17Factory())
+        ->instance(ResponseFactoryInterface::class, new Psr17Factory())
         ->instance(RouterInterface::class, $router)
         ->addProvider(new CorsServiceProvider())
         ->build();
@@ -112,7 +113,7 @@ test('lets the requests without origin through', function () {
     $middleware = makeCorsContainer(['CORS_ALLOWED_ORIGINS' => 'https://app.example.com'])->get(CorsMiddleware::class);
 
     $response = $middleware->process(
-        new ServerRequest(uri: 'http://api.test/api/v1/posts', method: 'GET'),
+        new ServerRequest('GET', 'http://api.test/api/v1/posts'),
         new NoopRequestHandler()
     );
 

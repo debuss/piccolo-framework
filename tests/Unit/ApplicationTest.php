@@ -2,8 +2,7 @@
 
 use Piccolo\Application;
 use Piccolo\Container\{ContainerBuilder, ScopeInterface};
-use Laminas\Diactoros\Response\JsonResponse;
-use Laminas\Diactoros\ServerRequest;
+use Nyholm\Psr7\ServerRequest;
 use Psr\Log\{LoggerInterface, NullLogger};
 use Laminas\Stratigility\Middleware\{CallableMiddlewareDecorator, RequestHandlerMiddleware};
 use Laminas\Stratigility\MiddlewarePipe;
@@ -13,6 +12,7 @@ use Tests\Fixtures\{CountingHandler,
     FakeContainer,
     FakeRequestHandlerRunner,
     FakeRouter,
+    JsonResponse,
     NoopMiddleware,
     NoopRequestHandler,
     RecordingMiddleware,
@@ -113,14 +113,14 @@ test('piped middleware execute in registration order, and a path-scoped group on
     $app->pipe(new TerminalMiddleware('fallback'));
 
     $matching = json_decode(
-        (string) $pipeline->handle(new ServerRequest(uri: '/api/posts', method: 'GET'))->getBody(),
+        (string) $pipeline->handle(new ServerRequest('GET', '/api/posts'))->getBody(),
         true
     );
 
     expect($matching)->toBe(['trail' => ['outer', 'api-1'], 'source' => 'api']);
 
     $nonMatching = json_decode(
-        (string) $pipeline->handle(new ServerRequest(uri: '/other', method: 'GET'))->getBody(),
+        (string) $pipeline->handle(new ServerRequest('GET', '/other'))->getBody(),
         true
     );
 
@@ -136,7 +136,7 @@ test('a class-string middleware is lazily resolved from the container only when 
     $app->pipe(new TerminalMiddleware('end'));
 
     $response = json_decode(
-        (string) $pipeline->handle(new ServerRequest(uri: '/', method: 'GET'))->getBody(),
+        (string) $pipeline->handle(new ServerRequest('GET', '/'))->getBody(),
         true
     );
 
@@ -199,7 +199,7 @@ test('route() with an array groups the route middlewares and the handler into a 
         ->and($routes[0]->getMiddleware())->toBeInstanceOf(MiddlewarePipe::class);
 
     $response = json_decode(
-        (string) $routes[0]->getMiddleware()->process(new ServerRequest(uri: '/posts', method: 'GET'), new NoopRequestHandler())->getBody(),
+        (string) $routes[0]->getMiddleware()->process(new ServerRequest('GET', '/posts'), new NoopRequestHandler())->getBody(),
         true
     );
 
@@ -257,8 +257,8 @@ test('handles each request in its own scope, disposed once the response is creat
     RequestCounter::$disposed = [];
     $app = makeScopedApplication();
 
-    $first = json_decode((string)$app->handle(new ServerRequest(uri: '/'))->getBody(), true);
-    $second = json_decode((string)$app->handle(new ServerRequest(uri: '/'))->getBody(), true);
+    $first = json_decode((string)$app->handle(new ServerRequest('GET', '/'))->getBody(), true);
+    $second = json_decode((string)$app->handle(new ServerRequest('GET', '/'))->getBody(), true);
 
     // The handler gets the same counter twice during a request, but a new one for the next request
     expect($first['count'])->toBe(2)
@@ -276,7 +276,7 @@ test('disposes the scope when the request fails', function () {
         throw new RuntimeException('Failure');
     });
 
-    expect(fn () => $app->handle(new ServerRequest()))->toThrow(RuntimeException::class)
+    expect(fn () => $app->handle(new ServerRequest('GET', '/')))->toThrow(RuntimeException::class)
         ->and(RequestCounter::$disposed)->toHaveCount(1);
 });
 
@@ -284,16 +284,16 @@ test('keeps the scope of a request that already has one', function () {
     $container = new ContainerBuilder()->build();
     $scope = $container->createScope();
     $app = new Application(new MiddlewarePipe(), new FakeRequestHandlerRunner(), new RouteCollector(new FakeRouter()), $container);
-    $app->pipe(fn ($request) => new JsonResponse(['same' => $request->getAttribute(ScopeInterface::class) === $scope]));
+    $app->pipe(fn ($request) => JsonResponse::of(['same' => $request->getAttribute(ScopeInterface::class) === $scope]));
 
-    $response = $app->handle(new ServerRequest()->withAttribute(ScopeInterface::class, $scope));
+    $response = $app->handle(new ServerRequest('GET', '/')->withAttribute(ScopeInterface::class, $scope));
 
     expect(json_decode((string)$response->getBody(), true))->toBe(['same' => true]);
 });
 
 test('handles the requests without scope when the container cannot create scopes', function () {
     ['app' => $app] = makeApplication();
-    $app->pipe(fn ($request) => new JsonResponse(['scope' => $request->getAttribute(ScopeInterface::class)]));
+    $app->pipe(fn ($request) => JsonResponse::of(['scope' => $request->getAttribute(ScopeInterface::class)]));
 
-    expect(json_decode((string)$app->handle(new ServerRequest())->getBody(), true))->toBe(['scope' => null]);
+    expect(json_decode((string)$app->handle(new ServerRequest('GET', '/'))->getBody(), true))->toBe(['scope' => null]);
 });

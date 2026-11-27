@@ -16,7 +16,7 @@ composer create-project debuss-a/piccolo my-app   # the skeleton, which requires
 | `Piccolo\Kernel` | Boots the application: paths, configuration, environment, PHP settings, container |
 | `Piccolo\Application` | The PSR-15 application: middleware pipeline, routes, one container scope per request |
 | `Piccolo\Runtime` | `SapiRunner` (PHP-FPM, built-in server, ...) and `FrankenPhpWorkerRunner`, chosen automatically |
-| `Piccolo\ServiceProvider` | HTTP factories (Diactoros), logger (Monolog), router (FastRoute), error handler, Problem Details, CORS, templates (Plates) |
+| `Piccolo\ServiceProvider` | HTTP factories (Nyholm PSR-7), logger (Monolog), router (FastRoute), error handler, Problem Details, CORS, templates (Plates) |
 | `Piccolo\Middleware` | `RequestIdMiddleware`, `HttpCacheMiddleware`, `ApiAcceptHeaderMiddleware`, `LazyLoadingMiddleware` |
 | `Piccolo\Http` | `Handler` (base class of the request handlers), error logging, request identifier |
 | `Piccolo\Console` | `cache:clear`, `cache:warmup`, `routes:list` |

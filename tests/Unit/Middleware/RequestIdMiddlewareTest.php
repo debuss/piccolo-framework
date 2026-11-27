@@ -2,7 +2,7 @@
 
 use Piccolo\Http\RequestIdProcessor;
 use Piccolo\Middleware\RequestIdMiddleware;
-use Laminas\Diactoros\{Response, ServerRequest};
+use Nyholm\Psr7\{Response, ServerRequest};
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\RequestHandlerInterface;
 
@@ -36,7 +36,7 @@ test('generates an identifier when the request has none, for the request, the lo
     $processor = new RequestIdProcessor();
     $handler = recordingHandler($processor);
 
-    $response = new RequestIdMiddleware($processor)->process(new ServerRequest(), $handler);
+    $response = new RequestIdMiddleware($processor)->process(new ServerRequest('GET', '/'), $handler);
 
     $requestId = $response->getHeaderLine('X-Request-Id');
     expect($requestId)->toMatch('/^[0-9a-f]{32}$/')
@@ -49,7 +49,7 @@ test('keeps a valid identifier sent in the X-Request-Id header', function (strin
     $handler = recordingHandler($processor);
 
     $response = new RequestIdMiddleware($processor)->process(
-        new ServerRequest(headers: ['X-Request-Id' => $requestId]),
+        new ServerRequest('GET', '/', ['X-Request-Id' => $requestId]),
         $handler
     );
 
@@ -65,7 +65,7 @@ test('replaces an invalid identifier sent in the X-Request-Id header', function 
     $processor = new RequestIdProcessor();
 
     $response = new RequestIdMiddleware($processor)->process(
-        new ServerRequest(headers: ['X-Request-Id' => $requestId]),
+        new ServerRequest('GET', '/', ['X-Request-Id' => $requestId]),
         recordingHandler($processor)
     );
 
@@ -85,7 +85,7 @@ test('stops adding the identifier to the logs once the request is handled, even 
         }
     };
 
-    expect(fn() => new RequestIdMiddleware($processor)->process(new ServerRequest(), $failingHandler))
+    expect(fn() => new RequestIdMiddleware($processor)->process(new ServerRequest('GET', '/'), $failingHandler))
         ->toThrow(RuntimeException::class)
         ->and($processor(makeLogRecord())->extra)->toBe([]);
 });

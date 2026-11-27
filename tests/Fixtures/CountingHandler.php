@@ -2,7 +2,6 @@
 
 namespace Tests\Fixtures;
 
-use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\LoggerInterface;
@@ -27,7 +26,7 @@ final readonly class CountingHandler implements RequestHandlerInterface
 
         $this->logger->info('Counting');
 
-        return new JsonResponse([
+        return JsonResponse::of([
             'counter' => spl_object_id($this->first),
             'count' => $this->second->count,
             'path' => $request->getUri()->getPath(),
