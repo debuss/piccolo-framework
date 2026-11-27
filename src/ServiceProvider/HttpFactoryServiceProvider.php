@@ -8,12 +8,7 @@ use Awareness\{RequestFactoryAwareInterface,
     StreamFactoryAwareInterface,
     UploadedFileFactoryAwareInterface,
     UriFactoryAwareInterface};
-use Laminas\Diactoros\{RequestFactory,
-    ResponseFactory,
-    ServerRequestFactory,
-    StreamFactory,
-    UploadedFileFactory,
-    UriFactory};
+use Nyholm\Psr7\Factory\Psr17Factory;
 use Piccolo\Container\{ContainerBuilder, ServiceProvider};
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\{RequestFactoryInterface,
@@ -26,25 +21,25 @@ use Psr\Http\Message\{RequestFactoryInterface,
 /**
  * PSR-17 HTTP Factories Service Provider
  *
- * The PSR-7 / PSR-17 implementation is only chosen here: Laminas Diactoros by default. To use another implementation,
- * add this provider again in config/container.php with its factories, the rest of the framework only relies on the
- * PSR-17 interfaces.
+ * The PSR-7 / PSR-17 implementation is only chosen here: Nyholm PSR-7 by default, lighter and faster than Laminas
+ * Diactoros. To use another implementation, add this provider again in config/container.php with its factories, the
+ * rest of the framework only relies on the PSR-17 interfaces.
  *
  * The services implementing the *FactoryAwareInterface of debuss-a/awareness get the factories after their creation.
  *
- * @see https://docs.laminas.dev/laminas-diactoros/v3/factories/
+ * @see https://github.com/Nyholm/psr7
  * @see https://github.com/debuss/awareness
  */
 class HttpFactoryServiceProvider implements ServiceProvider
 {
 
     public function __construct(
-        private readonly RequestFactoryInterface $requestFactory = new RequestFactory(),
-        private readonly ResponseFactoryInterface $responseFactory = new ResponseFactory(),
-        private readonly ServerRequestFactoryInterface $serverRequestFactory = new ServerRequestFactory(),
-        private readonly StreamFactoryInterface $streamFactory = new StreamFactory(),
-        private readonly UploadedFileFactoryInterface $uploadedFileFactory = new UploadedFileFactory(),
-        private readonly UriFactoryInterface $uriFactory = new UriFactory()
+        private readonly RequestFactoryInterface $requestFactory = new Psr17Factory(),
+        private readonly ResponseFactoryInterface $responseFactory = new Psr17Factory(),
+        private readonly ServerRequestFactoryInterface $serverRequestFactory = new Psr17Factory(),
+        private readonly StreamFactoryInterface $streamFactory = new Psr17Factory(),
+        private readonly UploadedFileFactoryInterface $uploadedFileFactory = new Psr17Factory(),
+        private readonly UriFactoryInterface $uriFactory = new Psr17Factory()
     ) {}
 
     public function register(ContainerBuilder $builder): void

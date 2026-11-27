@@ -2,7 +2,6 @@
 
 namespace Tests\Fixtures;
 
-use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\{MiddlewareInterface, RequestHandlerInterface};
 
@@ -19,7 +18,7 @@ final readonly class TerminalMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        return new JsonResponse([
+        return JsonResponse::of([
             'trail' => $request->getAttribute('trail', []),
             'source' => $this->source,
         ]);

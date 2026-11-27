@@ -3,14 +3,14 @@
 use Piccolo\Environment;
 use Piccolo\Http\ServerRequestErrorResponseGenerator;
 use Debuss\ServerRequestFactory\BadRequestException;
-use Laminas\Diactoros\ResponseFactory;
+use Nyholm\Psr7\Factory\Psr17Factory;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
 
 function makeServerRequestErrorResponseGenerator(Environment $environment, ?TestHandler $handler = null): ServerRequestErrorResponseGenerator
 {
     return new ServerRequestErrorResponseGenerator(
-        new ResponseFactory(),
+        new Psr17Factory(),
         new Logger('test', [$handler ?? new TestHandler()]),
         $environment
     );

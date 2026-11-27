@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
 use Borsch\Config\Config;
-use Laminas\Diactoros\ServerRequest;
+use Nyholm\Psr7\ServerRequest;
 use Laminas\Stratigility\Middleware\ErrorHandler;
 use Mezzio\Cors\Middleware\CorsMiddleware;
 use Mezzio\Helper\BodyParams\BodyParamsMiddleware;
@@ -67,6 +67,19 @@ test('resolves every service of the framework', function (string $id) {
     RoutesListCommand::class,
 ]);
 
+test('creates the stateless middlewares of the framework once, for all the requests', function (string $id) {
+    $container = Kernel::boot(fixtureApp())->container();
+
+    expect($container->createScope()->get($id))->toBe($container->createScope()->get($id));
+})->with([
+    Piccolo\Middleware\RequestIdMiddleware::class,
+    Laminas\Stratigility\Middleware\OriginalMessages::class,
+    Piccolo\Middleware\ApiAcceptHeaderMiddleware::class,
+    Piccolo\Middleware\HttpCacheMiddleware::class,
+    BodyParamsMiddleware::class,
+    Laminas\Stratigility\Handler\NotFoundHandler::class,
+]);
+
 test('runs the requests with the SAPI runner outside a FrankenPHP worker', function () {
     expect(Kernel::boot(fixtureApp())->container()->get(RunnerInterface::class))->toBeInstanceOf(SapiRunner::class);
 });
@@ -78,9 +91,9 @@ test('gives the application with the pipeline and the routes, loaded once', func
 
     expect($kernel->http())->toBe($application)
         ->and($application->getRoutes())->toHaveCount(2)
-        ->and($application->handle(new ServerRequest(uri: '/count', method: 'GET'))->getStatusCode())->toBe(200)
-        ->and($application->handle(new ServerRequest(uri: '/count', method: 'POST'))->getStatusCode())->toBe(405)
-        ->and($application->handle(new ServerRequest(uri: '/missing', method: 'GET'))->getStatusCode())->toBe(404);
+        ->and($application->handle(new ServerRequest('GET', '/count'))->getStatusCode())->toBe(200)
+        ->and($application->handle(new ServerRequest('POST', '/count'))->getStatusCode())->toBe(405)
+        ->and($application->handle(new ServerRequest('GET', '/missing'))->getStatusCode())->toBe(404);
 });
 
 test('gives the console with the commands of the framework and of config/commands.php, resolved in a scope', function () {

@@ -1,7 +1,8 @@
 <?php declare(strict_types=1);
 
 use Piccolo\Middleware\HttpCacheMiddleware;
-use Laminas\Diactoros\{Response, ServerRequest, StreamFactory};
+use Nyholm\Psr7\{Response, ServerRequest};
+use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\RequestHandlerInterface;
 
@@ -11,7 +12,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 function makeHttpCacheMiddleware(): HttpCacheMiddleware
 {
     $middleware = new HttpCacheMiddleware();
-    $middleware->setStreamFactory(new StreamFactory());
+    $middleware->setStreamFactory(new Psr17Factory());
 
     return $middleware;
 }
@@ -26,7 +27,7 @@ function respondWith(string $body, int $status = 200): RequestHandlerInterface
 
         public function handle(ServerRequestInterface $request): ResponseInterface
         {
-            $response = new Response(status: $this->status);
+            $response = new Response($this->status);
             $response->getBody()->write($this->body);
 
             return $response->withHeader('Content-Length', (string)strlen($this->body));
@@ -40,7 +41,7 @@ function etagOf(string $body): string
 }
 
 test('adds the cache headers to a successful GET response, and keeps its body', function () {
-    $response = makeHttpCacheMiddleware()->process(new ServerRequest(method: 'GET'), respondWith('openapi: 3.1.0'));
+    $response = makeHttpCacheMiddleware()->process(new ServerRequest('GET', '/'), respondWith('openapi: 3.1.0'));
 
     expect($response->getStatusCode())->toBe(200)
         ->and($response->getHeaderLine('Cache-Control'))->toBe('public, max-age=3600')
@@ -49,7 +50,7 @@ test('adds the cache headers to a successful GET response, and keeps its body', 
 });
 
 test('answers 304 without body when If-None-Match matches the ETag', function (string $ifNoneMatch) {
-    $request = new ServerRequest(method: 'GET', headers: ['If-None-Match' => $ifNoneMatch]);
+    $request = new ServerRequest('GET', '/', ['If-None-Match' => $ifNoneMatch]);
 
     $response = makeHttpCacheMiddleware()->process($request, respondWith('openapi: 3.1.0'));
 
@@ -66,7 +67,7 @@ test('answers 304 without body when If-None-Match matches the ETag', function (s
 ]);
 
 test('answers 200 with the body when If-None-Match does not match the ETag', function () {
-    $request = new ServerRequest(method: 'GET', headers: ['If-None-Match' => etagOf('openapi: 3.0.0')]);
+    $request = new ServerRequest('GET', '/', ['If-None-Match' => etagOf('openapi: 3.0.0')]);
 
     $response = makeHttpCacheMiddleware()->process($request, respondWith('openapi: 3.1.0'));
 
@@ -75,7 +76,7 @@ test('answers 200 with the body when If-None-Match does not match the ETag', fun
 });
 
 test('leaves the responses of other HTTP methods untouched', function () {
-    $response = makeHttpCacheMiddleware()->process(new ServerRequest(method: 'POST'), respondWith('created', 201));
+    $response = makeHttpCacheMiddleware()->process(new ServerRequest('POST', '/'), respondWith('created', 201));
 
     expect($response->getStatusCode())->toBe(201)
         ->and($response->hasHeader('ETag'))->toBeFalse()
@@ -83,7 +84,7 @@ test('leaves the responses of other HTTP methods untouched', function () {
 });
 
 test('leaves unsuccessful responses untouched', function () {
-    $response = makeHttpCacheMiddleware()->process(new ServerRequest(method: 'GET'), respondWith('Not Found', 404));
+    $response = makeHttpCacheMiddleware()->process(new ServerRequest('GET', '/'), respondWith('Not Found', 404));
 
     expect($response->getStatusCode())->toBe(404)
         ->and($response->hasHeader('ETag'))->toBeFalse()
