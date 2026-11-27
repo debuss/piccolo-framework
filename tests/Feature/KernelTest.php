@@ -91,7 +91,7 @@ test('gives the application with the pipeline and the routes, loaded once', func
     $application = $kernel->http();
 
     expect($kernel->http())->toBe($application)
-        ->and($application->getRoutes())->toHaveCount(3)
+        ->and($application->getRoutes())->toHaveCount(4)
         ->and($application->handle(new ServerRequest('GET', '/count'))->getStatusCode())->toBe(200)
         ->and($application->handle(new ServerRequest('POST', '/count'))->getStatusCode())->toBe(405)
         ->and($application->handle(new ServerRequest('GET', '/missing'))->getStatusCode())->toBe(404);

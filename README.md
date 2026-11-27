@@ -20,6 +20,7 @@ composer create-project debuss-a/piccolo my-app   # the skeleton, which requires
 | `Piccolo\Middleware` | `RequestIdMiddleware`, `SecurityHeadersMiddleware`, `HttpCacheMiddleware`, `ApiAcceptHeaderMiddleware`, `LazyLoadingMiddleware` |
 | `Piccolo\Http` | `Handler` (base class of the request handlers: `html()`, `text()`, `xml()`, `json()`, `redirect()`, `empty()`), HTTP exceptions (`NotFoundException`, `UnprocessableEntityException`, ...) answered as Problem Details, error logging, request identifier |
 | `Piccolo\Console` | `about`, `cache:clear`, `cache:warmup`, `container:check`, `container:list`, `routes:list`, `routes:match` |
+| `Piccolo\Testing` | `TestClient` and `TestResponse`, for the end-to-end tests of the application |
 | `Piccolo\Paths` | The directories of the application, and the helpers `app_path()`, `config_path()`, `storage_path()`, ... |
 
 ## Application layout
@@ -66,6 +67,31 @@ stops after `MAX_REQUESTS` requests (unlimited by default) so that FrankenPHP re
 
 Rule of thumb in a worker: **never keep a request state in a singleton**: make the service scoped, or reset it (implement
 `Piccolo\Container\Resettable`, or register a hook with `$builder->onReset()`).
+
+## Testing an application
+
+`Piccolo\Testing\TestClient` sends requests to the application as its HTTP server would: it is booted once per
+client, then each request is handled in its own scope (as in a FrankenPHP worker). The requests are created with the
+PSR-17 factories of the container, so the tests do not depend on the PSR-7 implementation.
+
+```php
+use Piccolo\Testing\TestClient;
+
+test('creates a post', function () {
+    $client = new TestClient(dirname(__DIR__, 2));
+
+    $client->get('/api/ping')->assertOk()->assertHeader('X-Request-Id');
+    $client->post('/api/v1/posts', ['title' => 'Hello'])->assertStatus(201)->assertJson(['title' => 'Hello']);
+    $client->form('POST', '/login', ['email' => 'alice@example.com'])->assertStatus(302);
+
+    expect($client->get('/api/v1/posts/1')->json())->toHaveKey('id');
+});
+```
+
+`get()`, `head()`, `options()`, `delete()`, `post()`, `put()`, `patch()` (JSON body), `json()`, `form()`, `request()`,
+and `createRequest()` + `handle()` for a request to complete (cookies, attributes, uploaded files). The assertions of
+`TestResponse` (`assertStatus()`, `assertOk()`, `assertHeader()`, `assertHeaderMissing()`, `assertJson()`,
+`assertBodyContains()`) need PHPUnit or Pest; `status()`, `header()`, `body()` and `json()` work with any test tool.
 
 ## Tests
 
