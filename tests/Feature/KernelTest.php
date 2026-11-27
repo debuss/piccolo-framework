@@ -90,7 +90,7 @@ test('gives the application with the pipeline and the routes, loaded once', func
     $application = $kernel->http();
 
     expect($kernel->http())->toBe($application)
-        ->and($application->getRoutes())->toHaveCount(2)
+        ->and($application->getRoutes())->toHaveCount(3)
         ->and($application->handle(new ServerRequest('GET', '/count'))->getStatusCode())->toBe(200)
         ->and($application->handle(new ServerRequest('POST', '/count'))->getStatusCode())->toBe(405)
         ->and($application->handle(new ServerRequest('GET', '/missing'))->getStatusCode())->toBe(404);
@@ -100,10 +100,20 @@ test('gives the console with the commands of the framework and of config/command
     $console = Kernel::boot(fixtureApp())->console();
     $console->setAutoExit(false);
 
-    expect($console->has('cache:clear'))->toBeTrue()
+    expect($console->has('about'))->toBeTrue()
+        ->and($console->has('cache:clear'))->toBeTrue()
         ->and($console->has('cache:warmup'))->toBeTrue()
+        ->and($console->has('container:check'))->toBeTrue()
+        ->and($console->has('container:list'))->toBeTrue()
         ->and($console->has('routes:list'))->toBeTrue()
+        ->and($console->has('routes:match'))->toBeTrue()
         // Its scoped dependency could not be resolved without a scope
         ->and($console->get('fixture:noop'))->toBeInstanceOf(NoopCommand::class)
         ->and($console->run(new ArrayInput(['command' => 'fixture:noop']), new BufferedOutput()))->toBe(0);
+});
+
+test('resolves itself from its container, for the commands needing the HTTP application', function () {
+    $kernel = Kernel::boot(fixtureApp());
+
+    expect($kernel->container()->get(Kernel::class))->toBe($kernel);
 });
